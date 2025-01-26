@@ -15,7 +15,7 @@ networking:
 
   # non-ovnk cnis, like Cilium, need kubeProxyMode.
   # use kubeProxyMode none only when deploying kind for ovn-kubernetes
-  kubeProxyMode: "none"
+  # kubeProxyMode: "none"
 
   # podSubnet: 10.244.0.0/16
   # serviceSubnet: 10.96.0.0/16
@@ -28,10 +28,10 @@ EOF
 
 /vagrant/provision/config_kind.sh
 
-# /vagrant/provision/start_cluster_cni_cilium.sh
+/vagrant/provision/start_cluster_cni_cilium.sh
 
 # /vagrant/provision/start_cluster_cni_ovnk_build_locally.sh
-/vagrant/provision/start_cluster_cni_ovnk.sh
+# /vagrant/provision/start_cluster_cni_ovnk.sh
 
 # Wait for all nodes to be ready (10 minutes timeout)
 timeout=600
