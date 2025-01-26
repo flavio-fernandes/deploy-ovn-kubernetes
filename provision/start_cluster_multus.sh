@@ -6,7 +6,7 @@ set -o errexit
 set -o xtrace
 
 # Multus
-kubectl create -f https://raw.githubusercontent.com/k8snetworkplumbingwg/multus-cni/refs/heads/master/deployments/multus-daemonset-thick.yml
+kubectl apply -f https://raw.githubusercontent.com/k8snetworkplumbingwg/multus-cni/refs/heads/master/deployments/multus-daemonset-thick.yml
 # kubectl -n kube-system wait --for=condition=ready -l name=multus pod --timeout=300s
 /vagrant/provision/wait_for_pods.sh -n kube-system -l "name=multus"
 
