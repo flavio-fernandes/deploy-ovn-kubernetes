@@ -42,30 +42,30 @@ Vagrant.configure("2") do |config|
     lv.machine_virtual_size = 100
   end
 
-  # # Add bridged network interface to fedora vm
-  # config.vm.network "public_network",
-  #                   :dev => "bridge0",
-  #                   :mode => "bridge",
-  #                   :type => "bridge",
-  #                   use_dhcp_assigned_default_route: true
+  # Add bridged network interface to fedora vm
+  config.vm.network "public_network",
+                    :dev => "bridge0",
+                    :mode => "bridge",
+                    :type => "bridge",
+                    use_dhcp_assigned_default_route: true
 
-  # config.hostmanager.enabled = true
-  # config.hostmanager.manage_host = true
-  # config.hostmanager.manage_guest = true
-  # config.ssh.forward_agent = true
+  config.hostmanager.enabled = true
+  config.hostmanager.manage_host = true
+  config.hostmanager.manage_guest = true
+  config.ssh.forward_agent = true
 
   config.vm.hostname = "fedora"
   # Uncomment one of these to mount host folder from vm
   # config.vm.synced_folder "#{ENV['PWD']}", "/vagrant", type: "sshfs"
-  # config.vm.synced_folder "#{ENV['PWD']}", "/vagrant", type: "nfs", nfs_udp: false, nfs_udp: false
+  config.vm.synced_folder "#{ENV['PWD']}", "/vagrant", type: "nfs", nfs_udp: false, nfs_udp: false
 
-  # config.vm.provision :shell do |shell|
-  #   shell.privileged = true
-  #   shell.path = 'provision/checkNested.sh'
-  # end
+  config.vm.provision :shell do |shell|
+    shell.privileged = true
+    shell.path = 'provision/checkNested.sh'
+  end
 
-  # config.vm.provision "tweak_route", type: "shell",
-  #                     inline: $tweak_routes
+  config.vm.provision "tweak_route", type: "shell",
+                      inline: $tweak_routes
 
   config.vm.provision "tweak_disk", type: "shell",
                       inline: $tweak_disk
