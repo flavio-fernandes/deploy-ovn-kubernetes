@@ -30,8 +30,8 @@ Vagrant.configure("2") do |config|
   vm_memory = ENV['VM_MEMORY'] || RAM
   vm_cpus = ENV['VM_CPUS'] || VCPUS
 
-  # config.vm.box = "generic/rocky8"
-  config.vm.box = "fedora/40-cloud-base"
+  config.vm.box = "generic/rocky8"
+  # config.vm.box = "fedora/40-cloud-base"
 
   # libvirt
   config.vm.provider "libvirt" do |lv, override|
@@ -39,7 +39,7 @@ Vagrant.configure("2") do |config|
     lv.memory = vm_memory
     lv.nested = true
     # Set the primary disk size to 100 GB
-    lv.machine_virtual_size = 100
+    # lv.machine_virtual_size = 100
   end
 
   # # Add bridged network interface to fedora vm
@@ -54,9 +54,9 @@ Vagrant.configure("2") do |config|
   # config.hostmanager.manage_guest = true
   # config.ssh.forward_agent = true
 
-  config.vm.hostname = "fedora"
+  config.vm.hostname = "rocky"
   # Uncomment one of these to mount host folder from vm
-  # config.vm.synced_folder "#{ENV['PWD']}", "/vagrant", type: "sshfs"
+  config.vm.synced_folder "#{ENV['PWD']}", "/vagrant", type: "sshfs"
   # config.vm.synced_folder "#{ENV['PWD']}", "/vagrant", type: "nfs", nfs_udp: false, nfs_udp: false
 
   # config.vm.provision :shell do |shell|
@@ -67,8 +67,8 @@ Vagrant.configure("2") do |config|
   # config.vm.provision "tweak_route", type: "shell",
   #                     inline: $tweak_routes
 
-  config.vm.provision "tweak_disk", type: "shell",
-                      inline: $tweak_disk
+  # config.vm.provision "tweak_disk", type: "shell",
+  #                     inline: $tweak_disk
 
   config.vm.provision :shell do |shell|
     shell.privileged = false

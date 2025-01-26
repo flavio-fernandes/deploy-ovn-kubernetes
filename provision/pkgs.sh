@@ -5,8 +5,12 @@
 set -o errexit
 # set -o xtrace
 
-dnf install -y vim emacs-nox tmux curl wget tmate bat pip dnsutils make patch git jq bash-completion kubernetes-client
+dnf install -y --allowerasing vim emacs-nox tmux curl wget tmate python3-pip dnsutils make patch git jq bash-completion
 dnf groupinstall -y "Development Tools"
+
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x ./kubectl
+mv -vf ./kubectl /usr/local/bin/kubectl
 
 cat << EOT >> /root/.emacs
 ;; use C-x g for goto-line

@@ -24,6 +24,38 @@ nodes:
 - role: worker
 - role: worker
 - role: worker
+containerdConfigPatches:
+- |-
+  [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+    SystemdCgroup = false
+  [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.test-handler.options]
+    SystemdCgroup = false
+kubeadmConfigPatches:
+- |
+  kind: ClusterConfiguration
+  metadata:
+    name: config
+  apiServer:
+    extraArgs:
+      "v": "4"
+  controllerManager:
+    extraArgs:
+      "v": "4"
+  scheduler:
+    extraArgs:
+      "v": "4"
+  ---
+  kind: InitConfiguration
+  nodeRegistration:
+    kubeletExtraArgs:
+      "cgroup-driver": "cgroupfs"
+      "v": "4"
+  ---
+  kind: JoinConfiguration
+  nodeRegistration:
+    kubeletExtraArgs:
+      "cgroup-driver": "cgroupfs"
+      "v": "4"
 EOF
 
 /vagrant/provision/config_kind.sh
