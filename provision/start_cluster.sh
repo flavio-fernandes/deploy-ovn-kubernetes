@@ -7,6 +7,10 @@ set -o xtrace
 
 ## kind create cluster --config=/vagrant/kind-config.yaml
 
+# grab docker node images that include ovs
+docker pull nvcr.io/nv-ngn/sdn-dev/kind-node:v1.30.6 || { \
+    >&2 echo 'No kind-node image. Is .docker/config.json configured?'; exit 1; }
+
 cat <<EOF | kind create cluster --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -21,9 +25,13 @@ networking:
   # serviceSubnet: 10.96.0.0/16
 nodes:
 - role: control-plane
+  image: nvcr.io/nv-ngn/sdn-dev/kind-node:v1.30.6
 - role: worker
+  image: nvcr.io/nv-ngn/sdn-dev/kind-node:v1.30.6
 - role: worker
+  image: nvcr.io/nv-ngn/sdn-dev/kind-node:v1.30.6
 - role: worker
+  image: nvcr.io/nv-ngn/sdn-dev/kind-node:v1.30.6
 EOF
 
 /vagrant/provision/config_kind.sh
