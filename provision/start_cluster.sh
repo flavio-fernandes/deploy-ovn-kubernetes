@@ -30,8 +30,8 @@ EOF
 
 # /vagrant/provision/start_cluster_cni_cilium.sh
 
-# /vagrant/provision/start_cluster_cni_ovnk_build_locally.sh
-/vagrant/provision/start_cluster_cni_ovnk.sh
+/vagrant/provision/start_cluster_cni_ovnk_build_locally.sh
+# /vagrant/provision/start_cluster_cni_ovnk.sh
 
 # Wait for all nodes to be ready (10 minutes timeout)
 timeout=600
