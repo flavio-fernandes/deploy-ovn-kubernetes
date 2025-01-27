@@ -66,6 +66,7 @@ kind load docker-image ${IMG_PREFIX}:${TAG}
 helm pull ovnk/ovn-kubernetes --untar --version ${HVER} && \
 cd ovn-kubernetes && \
 helm install ovn-kubernetes . -f ${VALUES_FILE}  \
+   --set tags.ovs-node=false \
    --set k8sAPIServer="https://$(kubectl get pods -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].status.hostIP}'):6443" \
    --set global.enableAdminNetworkPolicy=true \
    --set global.enableMultiNetwork=true \
