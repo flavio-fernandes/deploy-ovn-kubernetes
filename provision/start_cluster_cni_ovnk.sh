@@ -54,8 +54,8 @@ helm repo add ovnk https://${ONWER}.github.io/ovn-kubernetes
 helm search repo ovnk --versions --devel
 
 # comment out one of the 2 lines below to use right helm chart version
-TAG='release-1.0'; HVER='1.0.0'; VALUES_FILE='values.yaml'
-# TAG='master' ; HVER='1.1.0-alpha' ; VALUES_FILE='values-single-node-zone.yaml'
+# TAG='release-1.0'; HVER='1.0.0'; VALUES_FILE='values.yaml'
+TAG='master' ; HVER='1.1.0-alpha' ; VALUES_FILE='values-single-node-zone.yaml'
 
 # for ovn interconnect, nodes must be labeled with their corresponding zones
 label_ovn_single_node_zones ${VALUES_FILE}
@@ -74,3 +74,11 @@ helm install ovn-kubernetes . -f ${VALUES_FILE}  \
 
 # kubectl -n ovn-kubernetes wait --for=condition=ready -l app=ovnkube-node pod --timeout=300s
 /vagrant/provision/wait_for_pods.sh -n ovn-kubernetes -l "app=ovnkube-node"
+
+# yuck: speed up the reinit of core-dns
+kubectl scale -n kube-system deployment.apps/coredns --replicas=0
+sleep 3
+# kubectl delete pod -n kube-system -l "k8s-app=kube-dns" --wait --timeout=60s ||:
+kubectl delete pod -n kube-system -l "k8s-app=kube-dns" --force --grace-period=0 ||:
+kubectl scale -n kube-system deployment.apps/coredns --replicas=1
+/vagrant/provision/wait_for_pods.sh -n kube-system -l "k8s-app=kube-dns"
