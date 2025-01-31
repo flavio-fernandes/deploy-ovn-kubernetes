@@ -43,16 +43,6 @@ install_online_ovn_kubernetes_crds() {
 # for admin network policy, we need external crds
 install_online_ovn_kubernetes_crds
 
-# ONWER='ovn-kubernetes'
-ONWER='flavio-fernandes'
-
-# IMG_PREFIX="ghcr.io/${ONWER}/ovn-kubernetes/ovn-kube-ubuntu"
-IMG_PREFIX="ghcr.io/${ONWER}/ovn-kubernetes/ovn-kube-fedora"
-
-helm repo add ovnk https://${ONWER}.github.io/ovn-kubernetes
-# helm repo update ovnk
-helm search repo ovnk --versions --devel
-
 # comment out one of the 2 lines below to use right helm chart version
 TAG='release-1.0'; HVER='1.0.0'; VALUES_FILE='values.yaml'
 # TAG='master' ; HVER='1.1.0-alpha' ; VALUES_FILE='values-single-node-zone.yaml'
@@ -60,11 +50,25 @@ TAG='release-1.0'; HVER='1.0.0'; VALUES_FILE='values.yaml'
 # for ovn interconnect, nodes must be labeled with their corresponding zones
 label_ovn_single_node_zones ${VALUES_FILE}
 
-docker pull ${IMG_PREFIX}:${TAG}
+OVNKDIR='/home/vagrant/ovn-kubernetes'
+cd
+git clone --depth 1 https://github.com/ovn-kubernetes/ovn-kubernetes.git -b ${TAG} && \
+cd ovn-kubernetes
+
+IMG_PREFIX="ghcr.io/ovn-kubernetes/ovn-kubernetes/ovn-kube-fedora"
+if [ -n "${BUILD}" ]; then
+    # Option 1: build image
+    cd ${OVNKDIR}/dist/images && make fedora
+    docker tag ovn-kube-fedora:latest ${IMG_PREFIX}:${TAG}
+else
+    # Option 2: pull image from github
+    docker pull ${IMG_PREFIX}:${TAG}
+fi
+
 kind load docker-image ${IMG_PREFIX}:${TAG}
 
-helm pull ovnk/ovn-kubernetes --untar --version ${HVER} && \
-cd ovn-kubernetes && \
+cd ${OVNKDIR}/helm/ovn-kubernetes
+
 helm install ovn-kubernetes . -f ${VALUES_FILE}  \
    --set k8sAPIServer="https://$(kubectl get pods -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].status.hostIP}'):6443" \
    --set global.enableAdminNetworkPolicy=true \
