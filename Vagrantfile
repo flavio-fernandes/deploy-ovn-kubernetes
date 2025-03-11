@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 
 # Adjust as needed...
-RAM = 16384
+RAM = 32768
 VCPUS = 8
 
 $tweak_routes = <<SCRIPT
@@ -32,7 +32,9 @@ Vagrant.configure("2") do |config|
 
   config.vm.box = "generic/rocky8"
   # config.vm.box = "fedora/40-cloud-base"
-
+  # config.vm.box = "generic/fedora39"
+  # config.vm.box = "gutehall/fedora40"
+  
   # libvirt
   config.vm.provider "libvirt" do |lv, override|
     lv.cpus = vm_cpus
@@ -42,6 +44,17 @@ Vagrant.configure("2") do |config|
     # lv.machine_virtual_size = 100
   end
 
+  # VirtualBox
+  config.vm.provider "virtualbox" do |vb|
+
+    vb.cpus = vm_cpus
+    vb.memory = vm_memory
+    vb.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
+
+    ## # Resize primary disk to 100GB (VirtualBox only supports increasing size)
+    ## vb.customize ["modifyhd", "#{ENV['VAGRANT_HOME']}/machines/default/virtualbox/box-disk001.vmdk", "--resize", 102400]
+  end
+  
   # # Add bridged network interface to fedora vm
   # config.vm.network "public_network",
   #                   :dev => "bridge0",
