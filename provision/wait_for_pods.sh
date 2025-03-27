@@ -44,7 +44,9 @@ echo "Waiting for pods with label $LABEL_SELECTOR in namespace $NAMESPACE to be 
 
 # Check if pods exist
 for ((i=1; i<=MAX_RETRIES; i++)); do
-    if kubectl -n "$NAMESPACE" get pods -l "$LABEL_SELECTOR" &>/dev/null; then
+
+    pod_count=$(kubectl -n "$NAMESPACE" get pods -l "$LABEL_SELECTOR" --no-headers 2>/dev/null | wc -l)
+    if [ "$pod_count" -gt 0 ]; then
         echo "Pods found. Proceeding to wait for readiness..."
         break
     fi
