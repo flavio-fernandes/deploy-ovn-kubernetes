@@ -1,0 +1,232 @@
+
+## --
+
+Demo 1
+
+From CNI Zero to CNI Hero: A Kubernetes Networking Tutorial
+https://kccnceu2024.sched.com/event/1YeQ4/tutorial-from-cni-zero-to-cni-hero-a-kubernetes-networking-tutorial-using-cni-doug-smith-tomofumi-hayashi-red-hat
+https://youtu.be/YumoKGhuZ2o?feature=shared
+https://static.sched.com/hosted_files/kccnceu2024/91/KubeCon%20EU2024%20CNI%20tutorials_20240321.pdf
+
+## --
+
+# restoring from snapshot
+vagrant snapshot restore --no-provision freshAndClean2 && \
+    time vagrant up --no-destroy-on-error && \
+    vagrant ssh 
+
+alias vssh='cd "$(cat /tmp/spwd.txt)"  && vagrant ssh'
+
+cat <<EOF | kind create cluster --config=-
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  disableDefaultCNI: true
+nodes:
+- role: control-plane
+- role: worker
+EOF
+
+# created a small k8 cluster to show how cni plugin is ran
+# note how this cluster is created using kind and using the
+# disableDefaultCNI flag to let us add our own cni plugin aftewards
+
+# Created a lightweight Kubernetes cluster with kind, where each k8s node
+# runs in its own Docker container.
+# This config sets up one control-plane and one worker, disables the
+# default CNI, and lets our OVN CNI run, with pods nested inside those
+# Docker-based nodes.
+        
+kubectl get nodes
+
+docker ps --format="{{.Names}}" --no-trunc
+docker exec -it kind-worker crictl ps    
+        
+# open k9s on side
+cd /home/ff/projects/deploy-ovn-kubernetes.git && vagrant ssh
+k9s
+:nodes
+    
+# back on other screen, lets get inside the worker node
+docker exec -it kind-worker bash
+
+# note there is no cni configuration yet
+cd /etc/cni/net.d/ && ls
+
+# let's create a cni type and a config
+
+# ;1
+cat >/opt/cni/bin/dummy <<'EOF'
+#!/bin/bash
+logit () {
+  echo "$1" >> /tmp/cni-inspect.log
+}
+
+logit "-------------- CNI call for $CNI_COMMAND on $CNI_CONTAINERID"
+logit "CNI_COMMAND: $CNI_COMMAND"
+logit "CNI_CONTAINERID: $CNI_CONTAINERID"
+logit "CNI_NETNS: $CNI_NETNS"
+logit "CNI_IFNAME: $CNI_IFNAME"
+logit "CNI_ARGS: $CNI_ARGS"
+logit "CNI_PATH: $CNI_PATH"
+logit "-- cni config"
+stdin=$(cat /dev/stdin)
+logit "$stdin"
+# Just a valid response with fake info.
+echo '{
+  "cniVersion": "0.3.1",
+  "interfaces": [                                            
+      {
+          "name": "eth0",
+          "sandbox": "'"$CNI_NETNS"'" 
+      }
+  ],
+  "ips": [
+      {
+          "version": "4",
+          "address": "192.0.2.22/24",
+          "gateway": "192.0.2.1",          
+          "interface": 0 
+      }
+  ]
+}'
+EOF
+    
+chmod +x /opt/cni/bin/dummy
+
+cat >/etc/cni/net.d/99-dummy.conf <<EOF
+{
+    "cniVersion": "0.3.1",
+    "name": "my_dummy_network",
+    "type": "dummy"
+}
+EOF
+
+exit
+
+# see node become ready in k9s window
+# change k9s to pods
+
+# open another screen and do
+docker exec -it kind-worker tail -F /tmp/cni-inspect.log    
+
+# ;2    
+kubectl run alpine-sleeper --image=alpine --restart=Never -- sleep infinity
+
+# inpect the pod in containerd
+crictl ps
+crictl inspect $CID
+
+kubectl get pod -owide
+
+# ;3
+kubectl run -i --tty --rm alpine --image=alpine --restart=Never -- sh
+ip a
+
+kubectl delete pod alpine-sleeper --force --grace-period=0
+    
+# --
+    
+
+# flannel -- https://github.com/flannel-io/flannel
+kubectl get nodes | grep -v "NAME" | awk '{print $1}' | xargs -I {} docker exec -i {} modprobe br_netfilter
+
+kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+
+docker exec kind-worker bash -c "ls /etc/cni/net.d -1"
+docker exec kind-worker bash -c "ls /opt/cni/bin"
+        
+# start sleeper and see why it failed
+kubectl run alpine-sleeper --image=alpine --restart=Never -- sleep infinity
+    
+kubectl describe pod alpine-sleeper
+docker exec kind-worker bash -c "journalctl -u kubelet | grep -i error"
+docker exec kind-worker bash -c "journalctl -u containerd | grep -i error"
+
+# fix it
+kubectl apply -f https://raw.githubusercontent.com/dougbtv/cni-hero-hands-on/refs/heads/main/reference-cni-plugins.yml
+
+docker exec kind-worker bash
+watch -n 1 -d 'ls -la'
+    
+docker exec kind-worker bash -c "journalctl -u kubelet" | grep alpine-sleeper
+    
+# cleanup
+kind delete clusters kind
+
+# --     
+
+Demo 2
+
+OVN-Kubernetes The new default CNI of OpenShift
+https://sched.co/1MYfy
+https://youtu.be/_1mULoOtTwA?si=gwwCa1XcE3GBw3qr&t=374
+https://static.sched.com/hosted_files/devconfcz2023/d4/DevConf%202023_%20OVN-Kubernetes_%20The%20new%20default%20CNI%20of%20OpenShift.pdf
+
+# --
+
+# clean slate
+kind delete clusters kind ; rm -rf ~/ovn-kubernetes ~/ovn-conf
+
+cd && start_cluster.sh
+
+./start_test_pods.sh
+
+# a handy tool for monitoring ovn database
+cd && git clone https://github.com/flavio-fernandes/ovsdb-mon && \
+    cd ovsdb-mon/dist && . ./ovsdb-mon-ovn.source
+# to monitor main tables
+ovsdb-mon.nb -auto -no-monitor nb_global,connection
+# to delete ovsdb-mon
+k delete ns ovsdb-mon
+
+
+ovsdb-mon.nb list logical_switch name
+ovsdb-mon.nb -auto -no-monitor nb_global,connection
+
+for x in $(seq 3); do kubectl label pod samplepod${x} app=samplegroup ; done
+
+kubectl expose pod samplepod1 -n default --port=80 --protocol=TCP \
+    --name=samplepods --selector=app=samplegroup; # --dry-run=client -o yaml
+
+kubectl get ep
+
+# from northd shell
+
+# ovn representation for nodes
+# k get nodes
+ovn-nbctl lr-list
+
+# ovn logical switches, for every node
+ovn-nbctl ls-list
+
+# logical switch ports on a worker node
+# k get pod -owide --field-selector spec.nodeName=kind-worker
+ovn-nbctl show kind-worker
+ovn-nbctl show kind-worker2
+
+# looking deeper into the logical switch port
+ovn-nbctl find logical_switch_port name=default_samplepod1
+
+# looking ar how packets leaving the node are natted by ovn
+ovn-nbctl lr-nat-list GR_kind-worker
+    
+# looking at the service
+# k get svc samplepods ; k get ep samplepods
+ovn-nbctl find load_balancer name=Service_default/samplepods_TCP_cluster
+
+# lastly, looking at the openflow rules created from ovn-contoller
+ovs-ofctl --names dump-flows br-int | cut -d',' -f3-
+
+# looking at Geneve
+
+https://asciinema.org/a/715722
+
+ovn-sbctl list Datapath_Binding
+ovn-sbctl find Datapath_Binding tunnel_key=X
+
+ovn-sbctl --column=logical_port,tunnel_key,type,options find Port_Binding datapath=${DP}
+ovn-nbctl --column=name,ports list logical-switch
+ovn-nbctl list logical-switch $LS ; ovn-nbctl list logical-switch-port $LSP
+ovn-nbctl list logical-router $LR ; ovn-nbctl --column=name,mac,networks list logical-router-port $LRP
+ovn-nbctl --column=ip_prefix,nexthop,external_ids list Logical_Router_Static_Route ; ovn-nbctl lr-route-list GR_kind-worker

@@ -1,0 +1,11 @@
+echo \
+kubectl run -i --tty --rm alpine --image=alpine --restart=Never \
+ --overrides=\'{\"apiVersion\": \"v1\", \"spec\": {\"tolerations\": [ {\"operator\": \"Exists\"} ],  \"nodeSelector\": { \"kubernetes.io/hostname\": \"kind-worker\"}}}\' \
+ -- sh
+    
+echo
+    
+echo kubectl run -i --tty --rm alpine --image=alpine --restart=Never -- sh
+
+
+
